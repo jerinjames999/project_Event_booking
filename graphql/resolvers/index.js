@@ -3,18 +3,21 @@ const Event = require("../../models/event");
 const User = require("../../models/user");
 const Booking = require("../../models/booking");
 
+const transformEvent = (event) => {
+  return {
+    ...event._doc, //_doc is the property provided by the mongoose which will leave out all the meta data from the result object and only provide the core data
+    _id: event._doc._id.toString(),
+    date: new Date(event._doc.date).toISOString(),
+   creator: user.bind(this, event.creator),
+  };
+};
+
 const events = async (eventIds) => {
   try {
     const events = await Event.find({ _id: { $in: eventIds } });
-    events.map((event) => {
-      return {
-        ...event._doc,
-        _id: event.id,
-        date: new Date(event._doc.date).toISOString(),
-        creator: user.bind(this, event.creator),
-      };
+    return events.map((event) => {
+      return tranasformEvent(event);
     });
-    return events;
   } catch (err) {
     throw err;
   }
@@ -23,7 +26,7 @@ const events = async (eventIds) => {
 const singleEvent = async (eventId) => {
   try {
     const event = await Event.findById(eventId);
-    return { ...event._doc, creator: user.bind(this, event.creator) };
+    return transformEvent(event);
   } catch (err) {
     throw err;
   }
@@ -49,12 +52,7 @@ module.exports = {
       const events = await Event.find(); //  .populate(creator) by mongoose, it will populate any relation that knows(ref key) so it will pull those data from the respective collection. so we can use graph1ql to get those field data of the creator user. Note: mongoose won't populate recursively
       return events.map((event) => {
         //Note the best approach(populating)
-        return {
-          ...event._doc,
-          _id: event.id,
-          date: new Date(event._doc.date).toISOString(),
-          creator: user.bind(this, event._doc.creator),
-        };
+        return transformEvent(event);
       });
     } catch (err) {
       throw err;
@@ -87,12 +85,7 @@ module.exports = {
     let createdEvent;
     try {
       const result = await event.save();
-      createdEvent = {
-        ...result._doc, //_doc is the property provided by the mongoose which will leave out all the meta data from the result object and only provide the core data
-        _id: result._doc._id.toString(),
-        date: new Date(event._doc.date).toISOString(),
-        creator: user.bind(this, result._doc.creator),
-      };
+      createdEvent = transformEvent(result);
       const creator = await User.findById("5c0fbd06c816781c518e4f3e");
 
       if (!creator) {
@@ -143,14 +136,11 @@ module.exports = {
   cancelBooking: async (args) => {
     try {
       const booking = await Booking.findById(args.bookingId).populate("event");
-      const event = {
-        ...booking.event._doc,
-        creator: user.bind(this, booking.event._doc.creator),
-      };
+      const event = transformEvent(booking.event);
       await Booking.deleteOne({ _id: args.bookingId });
       return event;
     } catch (err) {
-      return err; 
+      return err;
     }
   },
 };

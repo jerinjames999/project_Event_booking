@@ -26,7 +26,7 @@ mongoose
     `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.bxcyh.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`
   )
   .then(() => {
-    app.listen(4000, () => {
+    app.listen(process.env.PORT, () => {
       console.log("Server Started");
     });
   })
